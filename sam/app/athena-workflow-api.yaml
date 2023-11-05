@@ -7,7 +7,7 @@ Parameters:
   AppName:
     Type: String
     Description: The name of the application.
-    Default: "realworld-aws-api"
+    Default: "sfn-api-powered-workflows"
 
   Stage:
     Type: String
@@ -28,7 +28,7 @@ Parameters:
 
 Outputs:
   AthenaWorkflowAPIURL:
-    Value: !Sub "https://${AthenaWorkflowAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    Value: !Sub "https://${AthenaWorkflowApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
 Globals:
   Function:
@@ -44,7 +44,7 @@ Globals:
         BRANCH: !Ref Branch
 
 Resources:
-  AthenaWorkflowAPI:
+  AthenaWorkflowApi:
     Type: AWS::Serverless::Api
     Properties:
       EndpointConfiguration:
@@ -68,13 +68,13 @@ Resources:
           ThrottlingBurstLimit: 10
       OpenApiVersion: "3.0.0"
 
-  AthenaWorkflowAPIFunctionLogGroup:
+  AthenaWorkflowApiFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${AthenaWorkflowAPIFunction}"
+      LogGroupName: !Sub "/aws/lambda/${AthenaWorkflowApiFunction}"
       RetentionInDays: !Ref RetentionInDays
 
-  AthenaWorkflowAPIFunction:
+  AthenaWorkflowApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../dist/athena-workflow-api-lambda.zip
@@ -83,7 +83,7 @@ Resources:
         AnyApi:
           Type: Api
           Properties:
-            RestApiId: !Ref AthenaWorkflowAPI
+            RestApiId: !Ref AthenaWorkflowApi
             Path: "/*"
             Method: "*"
       AutoPublishAlias: live
@@ -93,11 +93,11 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       ActionsEnabled: false
-      AlarmDescription: !Sub "Api availability is lower than 90%. Only used in canary deployment for Lambda ${AthenaWorkflowAPIFunction}"
+      AlarmDescription: !Sub "Api availability is lower than 90%. Only used in canary deployment for Lambda ${AthenaWorkflowApiFunction}"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ApiName
-          Value: !Sub ${AppName}-backend-${Stage}
+          Value: !Ref AWS::StackName
       EvaluationPeriods: 5
       MetricName: 5XXErrors
       Namespace: AWS/ApiGateway
@@ -109,11 +109,11 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       ActionsEnabled: false
-      AlarmDescription: !Sub "Api 4xx Errors are more than 30%. Only used in canary deployment for Lambda ${AthenaWorkflowAPIFunction}"
+      AlarmDescription: !Sub "Api 4xx Errors are more than 30%. Only used in canary deployment for Lambda ${AthenaWorkflowApiFunction}"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ApiName
-          Value: !Sub ${AppName}-backend-${Stage}
+          Value: !Ref AWS::StackName
       EvaluationPeriods: 5
       MetricName: 4XXErrors
       Namespace: AWS/ApiGateway
@@ -125,11 +125,11 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       ActionsEnabled: false
-      AlarmDescription: !Sub "Api latency p50 is too high. Only used in canary deployment for Lambda ${AthenaWorkflowAPIFunction}"
+      AlarmDescription: !Sub "Api latency p50 is too high. Only used in canary deployment for Lambda ${AthenaWorkflowApiFunction}"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ApiName
-          Value: !Sub ${AppName}-backend-${Stage}
+          Value: !Ref AWS::StackName
       EvaluationPeriods: 5
       MetricName: Latency
       Namespace: AWS/ApiGateway
@@ -143,5 +143,5 @@ Resources:
     Properties:
       Name: !Sub "/config/${AppName}/${Stage}/${Branch}/ApplicationsApi/Id"
       Type: "String"
-      Value: !Ref AthenaWorkflowAPI
+      Value: !Ref AthenaWorkflowApi
       Description: "ApplicationsApi Id"

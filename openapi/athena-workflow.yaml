@@ -1,7 +1,8 @@
 openapi: "3.0.0"
 info:
   version: 1.0.0
-  title: API which provides data processing workflow helpers
+  title:
+    'Fn::Sub': '${AWS::StackName}'
   description: API which provides data processing workflow helpers
 tags:
   - name: athena
@@ -34,7 +35,7 @@ paths:
                 $ref: '#/components/schemas/RunAthenaQueryTemplateResponse'
       x-amazon-apigateway-integration:
         uri:
-          'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiLambda.Arn}:live/invocations'
+          'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiFunction.Arn}:live/invocations'
         httpMethod: POST
         type: aws_proxy
         passthroughBehavior: never
@@ -62,7 +63,7 @@ paths:
                 $ref: '#/components/schemas/RunAthenaQueryTemplateResponse'
       x-amazon-apigateway-integration:
         uri:
-          'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiLambda.Arn}:live/invocations'
+          'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiFunction.Arn}:live/invocations'
         httpMethod: POST
         type: aws_proxy
         passthroughBehavior: never
