@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: >-
+  This template creates API Gateway and Lambda resources for the backend service.
+
+Parameters:
+  AppName:
+    Type: String
+    Description: The name of the application.
+    Default: "realworld-aws-api"
+
+  Stage:
+    Type: String
+    Description: The stage where the application is running in, e.g., dev, prod.
+    Default: "dev"
+
+  Branch:
+    Type: String
+    Default: "master"
+
+  RetentionInDays:
+    Type: Number
+    Default: 14
+
+  DataTracing:
+    Type: String
+    Default: false
+
+Outputs:
+  AthenaWorkflowAPIURL:
+    Value: !Sub "https://${AthenaWorkflowAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+Globals:
+  Function:
+    Runtime: provided.al2
+    Architectures:
+      - arm64
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        APP_NAME: !Ref AppName
+        STAGE: !Ref Stage
+        BRANCH: !Ref Branch
+
+Resources:
+  AthenaWorkflowAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      EndpointConfiguration:
+        Type: REGIONAL
+      # Use DefinitionBody for swagger file so that we can use CloudFormation intrinsic functions within the swagger file
+      DefinitionBody:
+        "Fn::Transform":
+          Name: "AWS::Include"
+          Parameters:
+            Location: "../../openapi/athena-workflow.yaml"
+      StageName: Prod
+      TracingEnabled: true # Enable AWS X-Ray to help debug API requests
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          # Disable data trace in production to avoid logging customer sensitive information from requests and responses
+          DataTraceEnabled: !Ref DataTracing
+          LoggingLevel: INFO
+          MetricsEnabled: true
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+      OpenApiVersion: "3.0.0"
+
+  AthenaWorkflowAPIFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AthenaWorkflowAPIFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  AthenaWorkflowAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../dist/athena-workflow-api-lambda.zip
+      Handler: bootstrap
+      Events:
+        AnyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AthenaWorkflowAPI
+            Path: "/*"
+            Method: "*"
+      AutoPublishAlias: live
+
+  # Alarms used in canary deployment for Applications API.
+  ApiAvailability:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: !Sub "Api availability is lower than 90%. Only used in canary deployment for Lambda ${AthenaWorkflowAPIFunction}"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub ${AppName}-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: 5XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.1
+      TreatMissingData: notBreaching
+  Api4xxErrors:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: !Sub "Api 4xx Errors are more than 30%. Only used in canary deployment for Lambda ${AthenaWorkflowAPIFunction}"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub ${AppName}-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: 4XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.3
+      TreatMissingData: notBreaching
+  ApiLatencyP50:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: !Sub "Api latency p50 is too high. Only used in canary deployment for Lambda ${AthenaWorkflowAPIFunction}"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub ${AppName}-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Period: 60
+      ExtendedStatistic: p50
+      Threshold: 200
+      TreatMissingData: notBreaching
+
+  ApiId:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/config/${AppName}/${Stage}/${Branch}/ApplicationsApi/Id"
+      Type: "String"
+      Value: !Ref AthenaWorkflowAPI
+      Description: "ApplicationsApi Id"

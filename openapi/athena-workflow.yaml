@@ -1,0 +1,147 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: API which provides data processing workflow helpers
+  description: API which provides data processing workflow helpers
+tags:
+  - name: athena
+    description: Athena workflow related operations
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+x-amazon-apigateway-request-validator: all
+paths:
+  /athena/run_s3_query_template:
+    post:
+      operationId: RunS3AthenaQueryTemplate
+      description: Runs a query template which is loaded from S3 on Athena and returns the results
+      tags:
+        - athena
+      requestBody:
+        description: The parameters, s3 object and athena details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunS3AthenaQueryTemplateRequest'
+      responses:
+        '200':
+          description: The query ran successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunAthenaQueryTemplateResponse'
+      x-amazon-apigateway-integration:
+        uri:
+          'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiLambda.Arn}:live/invocations'
+        httpMethod: POST
+        type: aws_proxy
+        passthroughBehavior: never
+      security:
+        - sigv4: []
+  /athena/run_query_template:
+    post:
+      operationId: RunAthenaQueryTemplate
+      description: Runs a query template on Athena and returns the results
+      tags:
+        - athena
+      requestBody:
+        description: The parameters, template and athena details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunAthenaQueryTemplateRequest'
+      responses:
+        '200':
+          description: The query ran successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunAthenaQueryTemplateResponse'
+      x-amazon-apigateway-integration:
+        uri:
+          'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiLambda.Arn}:live/invocations'
+        httpMethod: POST
+        type: aws_proxy
+        passthroughBehavior: never
+      security:
+        - sigv4: []
+components:
+  securitySchemes:
+    sigv4:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4
+  schemas:
+    RunS3AthenaQueryTemplateRequest:
+      type: object
+      required:
+        - parameters
+        - s3_query_template
+        - athena
+      properties:
+        parameters:
+          type: object
+        s3_query_template:
+          type: object
+          required:
+            - bucket
+            - key
+          properties:
+            bucket:
+              type: string
+            key:
+              type: string
+        athena:
+          type: object
+          required:
+            - catalogue
+            - database
+            - workgroup
+          properties:
+            catalogue:
+              type: string
+            database:
+              type: string
+            workgroup:
+              type: string
+    RunAthenaQueryTemplateRequest:
+      type: object
+      required:
+        - parameters
+        - query_template
+        - athena
+      properties:
+        parameters:
+          type: object
+        query_template:
+          type: string
+        athena:
+          type: object
+          required:
+            - catalogue
+            - database
+            - workgroup
+          properties:
+            catalogue:
+              type: string
+            database:
+              type: string
+            workgroup:
+              type: string
+    RunAthenaQueryTemplateResponse:
+      type: object
+      required:
+        - query_execution_id
+        - query_execution_state
+        - result_path
+      properties:
+        query_execution_id:
+          type: string
+        query_execution_state:
+          type: string
+        result_path:
+          type: string

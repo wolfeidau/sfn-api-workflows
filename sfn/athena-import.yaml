@@ -1,0 +1,4 @@
+Comment: Import data from firehose to Athena Iceberg Table
+StartAt: ProcessSchedule
+States:
+  ProcessSchedule:
