@@ -38,7 +38,7 @@ func main() {
 
 	gw := gateway.NewGateway(e)
 
-	err = server.Setup(awscfg, e)
+	err = server.Setup(*cfg, awscfg, e)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to setup server routes")
 	}

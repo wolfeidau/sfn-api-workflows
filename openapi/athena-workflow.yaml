@@ -1,8 +1,7 @@
 openapi: "3.0.0"
 info:
   version: 1.0.0
-  title:
-    'Fn::Sub': '${AWS::StackName}'
+  title: Athena Workflow API
   description: API which provides data processing workflow helpers
 tags:
   - name: athena
@@ -61,6 +60,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RunAthenaQueryTemplateResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
       x-amazon-apigateway-integration:
         uri:
           'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiFunction.Arn}:live/invocations'
@@ -82,7 +88,6 @@ components:
       required:
         - parameters
         - s3_query_template
-        - athena
       properties:
         parameters:
           type: object
@@ -96,43 +101,19 @@ components:
               type: string
             key:
               type: string
-        athena:
-          type: object
-          required:
-            - catalogue
-            - database
-            - workgroup
-          properties:
-            catalogue:
-              type: string
-            database:
-              type: string
-            workgroup:
-              type: string
     RunAthenaQueryTemplateRequest:
       type: object
       required:
         - parameters
-        - query_template
-        - athena
+        - query
       properties:
         parameters:
-          type: object
-        query_template:
+          type: array
+          description: ordered list of query parameters
+          items:
+            type: string
+        query:
           type: string
-        athena:
-          type: object
-          required:
-            - catalogue
-            - database
-            - workgroup
-          properties:
-            catalogue:
-              type: string
-            database:
-              type: string
-            workgroup:
-              type: string
     RunAthenaQueryTemplateResponse:
       type: object
       required:
@@ -146,3 +127,10 @@ components:
           type: string
         result_path:
           type: string
+    ErrorResponse:
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message

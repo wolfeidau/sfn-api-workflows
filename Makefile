@@ -46,7 +46,12 @@ deploy: clean build archive
 		--s3-prefix sam/$(GIT_HASH) \
 		--tags "environment=$(STAGE)" "branch=$(BRANCH)" "service=$(APPNAME)" \
 		--stack-name $(APPNAME)-athena-workflow-api-$(STAGE)-$(BRANCH) \
-		--parameter-overrides AppName=$(APPNAME) Stage=$(STAGE) Branch=$(BRANCH)
+		--parameter-overrides AppName=$(APPNAME) Stage=$(STAGE) Branch=$(BRANCH) \
+			AthenaDatabase=$(ATHENA_DATABASE) \
+			AthenaCatalog=$(ATHENA_CATALOG) \
+			AthenaWorkGroup=$(ATHENA_WORKGROUP) \
+			DataBucketName=$(DATA_BUCKET_NAME)
+
 
 .PHONY: athena-workflow-api-logs
 athena-workflow-api-logs:

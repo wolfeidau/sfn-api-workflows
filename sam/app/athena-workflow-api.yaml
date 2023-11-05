@@ -18,6 +18,18 @@ Parameters:
     Type: String
     Default: "master"
 
+  AthenaDatabase:
+    Type: String
+
+  AthenaCatalog:
+    Type: String
+
+  AthenaWorkGroup:
+    Type: String
+
+  DataBucketName:
+    Type: String
+
   RetentionInDays:
     Type: Number
     Default: 14
@@ -47,6 +59,7 @@ Resources:
   AthenaWorkflowApi:
     Type: AWS::Serverless::Api
     Properties:
+      Name: !Ref AWS::StackName
       EndpointConfiguration:
         Type: REGIONAL
       # Use DefinitionBody for swagger file so that we can use CloudFormation intrinsic functions within the swagger file
@@ -57,6 +70,25 @@ Resources:
             Location: "../../openapi/athena-workflow.yaml"
       StageName: Prod
       TracingEnabled: true # Enable AWS X-Ray to help debug API requests
+      AccessLogSetting:
+        DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AthenaWorkflowApiAccessLogGroup}"
+        Format: '{"sourceIp":"$context.identity.sourceIp","httpMethod":"$context.httpMethod","path":"$context.path","status":"$context.status","responseLength":"$context.responseLength","responseLatency":"$context.responseLatency","requestTime":"$context.requestTime","protocol":"$context.protocol","userAgent":"$context.identity.userAgent","requestId":"$context.requestId"}'
+          # {
+          #   "stage":"$context.stage",
+          #   "request_id":"$context.requestId",
+          #   "api_id":"$context.apiId",
+          #   "resource_path":"$context.resourcePath",
+          #   "resource_id":"$context.resourceId",
+          #   "http_method":"$context.httpMethod",
+          #   "source_ip":"$context.identity.sourceIp",
+          #   "user_agent":"$context.identity.userAgent",
+          #   "account_id":"$context.identity.accountId",
+          #   "caller":"$context.identity.caller",
+          #   "user":"$context.identity.user",
+          #   "user_arn":"$context.identity.userArn",
+          #   "principal_org_id":"$context.identity.principalOrgId",
+          #   "integration_latency":"$context.integration.latency"
+          # }
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
@@ -67,6 +99,12 @@ Resources:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
       OpenApiVersion: "3.0.0"
+
+  AthenaWorkflowApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/AccessLog-AthenaWorkflow-${Stage}-${Branch}
+      RetentionInDays: !Ref RetentionInDays
 
   AthenaWorkflowApiFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -79,6 +117,16 @@ Resources:
     Properties:
       CodeUri: ../../dist/athena-workflow-api-lambda.zip
       Handler: bootstrap
+      Environment:
+        Variables:
+          ATHENA_DATABASE: !Ref AthenaDatabase
+          ATHENA_CATALOG: !Ref AthenaCatalog
+          ATHENA_WORKGROUP: !Ref AthenaWorkGroup
+      Policies:
+        - AthenaQueryPolicy:
+            WorkGroupName: !Ref AthenaWorkGroup
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucketName
       Events:
         AnyApi:
           Type: Api
