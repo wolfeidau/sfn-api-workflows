@@ -1,4 +1,4 @@
-# sfn-api-powered-workflows
+# sfn-api-workflows
 
 This project illustrates how to architect a serverless workflow using AWS Step Functions and APIs powered by AWS APIGW and Lambda.
 

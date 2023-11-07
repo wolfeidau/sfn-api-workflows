@@ -7,7 +7,7 @@ Parameters:
   AppName:
     Type: String
     Description: The name of the application.
-    Default: "sfn-api-powered-workflows"
+    Default: "sfn-api-workflows"
 
   Stage:
     Type: String

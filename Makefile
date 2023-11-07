@@ -1,4 +1,4 @@
-APPNAME := sfn-api-powered-workflows
+APPNAME := sfn-api-workflows
 STAGE ?= dev
 BRANCH ?= master
 

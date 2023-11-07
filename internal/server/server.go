@@ -17,8 +17,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 	"github.com/wolfeidau/s3iofs"
-	"github.com/wolfeidau/sfn-api-powered-workflows/internal/api/athena_workflow"
-	"github.com/wolfeidau/sfn-api-powered-workflows/internal/flags"
+	"github.com/wolfeidau/sfn-api-workflows/internal/api/athena_workflow"
+	"github.com/wolfeidau/sfn-api-workflows/internal/flags"
 )
 
 const (

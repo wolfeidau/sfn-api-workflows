@@ -1,4 +1,4 @@
-module github.com/wolfeidau/sfn-api-powered-workflows
+module github.com/wolfeidau/sfn-api-workflows
 
 go 1.21.3
 

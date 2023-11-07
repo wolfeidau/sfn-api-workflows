@@ -11,8 +11,8 @@ import (
 	echolog "github.com/labstack/gommon/log"
 	"github.com/rs/zerolog/log"
 	"github.com/wolfeidau/lambda-go-extras/standard"
-	"github.com/wolfeidau/sfn-api-powered-workflows/internal/flags"
-	"github.com/wolfeidau/sfn-api-powered-workflows/internal/server"
+	"github.com/wolfeidau/sfn-api-workflows/internal/flags"
+	"github.com/wolfeidau/sfn-api-workflows/internal/server"
 )
 
 var (
