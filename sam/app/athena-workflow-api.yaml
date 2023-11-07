@@ -41,6 +41,10 @@ Parameters:
     Type: String
     Default: false
 
+  StageName:
+    Type: String
+    Default: "Prod"
+
 Outputs:
   AthenaWorkflowAPIURL:
     Value: !Sub "https://${AthenaWorkflowApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
@@ -73,7 +77,7 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "../../openapi/athena-workflow.yaml"
-      StageName: Prod
+      StageName: !Ref StageName
       TracingEnabled: true # Enable AWS X-Ray to help debug API requests
       AccessLogSetting:
         DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AthenaWorkflowApiAccessLogGroup}"
@@ -148,7 +152,7 @@ Resources:
             Method: "*"
       AutoPublishAlias: live
 
-  # Alarms used in canary deployment for Applications API.
+  # Alarms used in canary deployment of the API.
   ApiAvailability:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -165,6 +169,7 @@ Resources:
       Statistic: Average
       Threshold: 0.1
       TreatMissingData: notBreaching
+
   Api4xxErrors:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -181,6 +186,7 @@ Resources:
       Statistic: Average
       Threshold: 0.3
       TreatMissingData: notBreaching
+
   ApiLatencyP50:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -198,18 +204,32 @@ Resources:
       Threshold: 200
       TreatMissingData: notBreaching
 
-  ApiId:
+  ApiIdParam:
     Type: "AWS::SSM::Parameter"
     Properties:
-      Name: !Sub "/config/${AppName}/${Stage}/${Branch}/ApplicationsApi/Id"
+      Name: !Sub "/config/${AppName}/${Stage}/${Branch}/AthenaWorkflowApi/Id"
       Type: "String"
       Value: !Ref AthenaWorkflowApi
-      Description: "ApplicationsApi Id"
+      Description: "AthenaWorkflowApi Id"
+
+  ApiEndpointParam:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/config/${AppName}/${Stage}/${Branch}/AthenaWorkflowApi/Endpoint"
+      Type: "String"
+      Value: !Sub "${AthenaWorkflowApi}.execute-api.${AWS::Region}.amazonaws.com"
+      Description: "AthenaWorkflowApi Endpoint"
+
+  ApiStageParam:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/config/${AppName}/${Stage}/${Branch}/AthenaWorkflowApi/Stage"
+      Type: "String"
+      Value: !Ref StageName
+      Description: "AthenaWorkflowApi Stage"
 
   QueryTemplatesBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
       BucketEncryption:
         ServerSideEncryptionConfiguration:

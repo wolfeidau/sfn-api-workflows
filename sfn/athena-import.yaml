@@ -1,4 +1,23 @@
-Comment: Import data from firehose to Athena Iceberg Table
-StartAt: ProcessSchedule
+Comment: A demonstration step function which invokes the AthenaWorkflowApi
+StartAt: AthenaWorkflowApiInvoke
 States:
-  ProcessSchedule:
+  AthenaWorkflowApiInvoke:
+    Type: Task
+    Resource: arn:aws:states:::apigateway:invoke
+    Parameters:
+      ApiEndpoint: FIXME
+      Method: POST
+      Headers:
+        content-type:
+          - application/json
+      Stage: Prod
+      Path: /athena/run_s3_query_template
+      RequestBody:
+        template_name: select_example.sql
+        template_parse_patterns:
+          - tests/*.sql
+        template_data:
+          val: 1
+        wait_for_completion: true
+      AuthType: IAM_ROLE
+    End: true
