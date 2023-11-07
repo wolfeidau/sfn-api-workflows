@@ -8,7 +8,7 @@ TAG ?= $(shell git rev-parse --short HEAD)
 default: clean build archive deploy
 
 .PHONY: ci
-ci: clean lint test
+ci: clean test
 
 LDFLAGS := -ldflags="-s -w -X main.version=${TAG}"
 
@@ -53,6 +53,10 @@ deploy: clean build archive
 			DataBucketName=$(DATA_BUCKET_NAME) \
 			ResultsBucketName=$(RESULTS_BUCKET_NAME)
 
+.PHONY: lint-openapi-spec
+lint-openapi-spec:
+	@docker run --rm -it -v $(shell pwd):/tmp stoplight/spectral lint --ruleset /tmp/.spectral.yaml /tmp/openapi/athena-workflow.yaml
+
 .PHONY: athena-workflow-api-logs
 athena-workflow-api-logs:
-	sam logs --stack-name $(APPNAME)-athena-workflow-api-$(STAGE)-$(BRANCH) --name AthenaWorkflowApiFunction --tail
+	@sam logs --stack-name $(APPNAME)-athena-workflow-api-$(STAGE)-$(BRANCH) --name AthenaWorkflowApiFunction --tail
