@@ -30,6 +30,9 @@ Parameters:
   DataBucketName:
     Type: String
 
+  ResultsBucketName:
+    Type: String
+
   RetentionInDays:
     Type: Number
     Default: 14
@@ -48,7 +51,7 @@ Globals:
     Architectures:
       - arm64
     Timeout: 30
-    MemorySize: 256
+    MemorySize: 128
     Environment:
       Variables:
         APP_NAME: !Ref AppName
@@ -72,7 +75,7 @@ Resources:
       TracingEnabled: true # Enable AWS X-Ray to help debug API requests
       AccessLogSetting:
         DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AthenaWorkflowApiAccessLogGroup}"
-        Format: '{"sourceIp":"$context.identity.sourceIp","httpMethod":"$context.httpMethod","path":"$context.path","status":"$context.status","responseLength":"$context.responseLength","responseLatency":"$context.responseLatency","requestTime":"$context.requestTime","protocol":"$context.protocol","userAgent":"$context.identity.userAgent","requestId":"$context.requestId"}'
+        Format: '{"source_ip":"$context.identity.sourceIp","http_method":"$context.httpMethod","path":"$context.path","status":"$context.status","response_length":"$context.responseLength","response_latency":"$context.responseLatency","request_time":"$context.requestTime","protocol":"$context.protocol","user_agent":"$context.identity.userAgent","request_id":"$context.requestId","user":"$context.identity.user","user_arn":"$context.identity.userArn","integration_latency":"$context.integration.latency"}'
           # {
           #   "stage":"$context.stage",
           #   "request_id":"$context.requestId",
@@ -127,6 +130,10 @@ Resources:
             WorkGroupName: !Ref AthenaWorkGroup
         - S3ReadPolicy:
             BucketName: !Ref DataBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref ResultsBucketName
+        - S3WritePolicy:
+            BucketName: !Ref ResultsBucketName
       Events:
         AnyApi:
           Type: Api

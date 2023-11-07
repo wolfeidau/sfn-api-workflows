@@ -28,30 +28,35 @@ type ErrorResponse struct {
 
 // RunAthenaQueryTemplateRequest defines model for RunAthenaQueryTemplateRequest.
 type RunAthenaQueryTemplateRequest struct {
-	// Parameters ordered list of query parameters
-	Parameters []string `json:"parameters"`
-	Query      string   `json:"query"`
+	Query *struct {
+		// Parameters ordered list of query parameters
+		Parameters *[]string `json:"parameters,omitempty"`
+	} `json:"query,omitempty"`
+	TemplateData      *map[string]interface{} `json:"template_data,omitempty"`
+	TemplateQuery     string                  `json:"template_query"`
+	WaitForCompletion bool                    `json:"wait_for_completion"`
 }
 
 // RunAthenaQueryTemplateResponse defines model for RunAthenaQueryTemplateResponse.
 type RunAthenaQueryTemplateResponse struct {
-	QueryExecutionId    string `json:"query_execution_id"`
-	QueryExecutionState string `json:"query_execution_state"`
-	ResultPath          string `json:"result_path"`
+	QueryExecutionId    string  `json:"query_execution_id"`
+	QueryExecutionState *string `json:"query_execution_state,omitempty"`
+	ResultPath          *string `json:"result_path,omitempty"`
 }
 
 // RunS3AthenaQueryTemplateRequest defines model for RunS3AthenaQueryTemplateRequest.
 type RunS3AthenaQueryTemplateRequest struct {
-	Athena struct {
-		Catalogue string `json:"catalogue"`
-		Database  string `json:"database"`
-		Workgroup string `json:"workgroup"`
-	} `json:"athena"`
-	Parameters      map[string]interface{} `json:"parameters"`
-	S3QueryTemplate struct {
-		Bucket string `json:"bucket"`
-		Key    string `json:"key"`
-	} `json:"s3_query_template"`
+	Query *struct {
+		// Parameters ordered list of query parameters
+		Parameters *[]string `json:"parameters,omitempty"`
+	} `json:"query,omitempty"`
+	Template struct {
+		Parameters  *map[string]interface{} `json:"parameters,omitempty"`
+		S3QueryFile struct {
+			Bucket string `json:"bucket"`
+			Key    string `json:"key"`
+		} `json:"s3_query_file"`
+	} `json:"template"`
 }
 
 // RunAthenaQueryTemplateJSONRequestBody defines body for RunAthenaQueryTemplate for application/json ContentType.
@@ -133,22 +138,23 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

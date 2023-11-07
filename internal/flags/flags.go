@@ -2,7 +2,7 @@ package flags
 
 import "github.com/alecthomas/kong"
 
-// API api related flags passing in env variables
+// API api related flags passing in env variables.
 type API struct {
 	Version         kong.VersionFlag
 	AthenaDatabase  string `help:"The athena database name" env:"ATHENA_DATABASE"`

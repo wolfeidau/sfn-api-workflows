@@ -43,7 +43,7 @@ paths:
   /athena/run_query_template:
     post:
       operationId: RunAthenaQueryTemplate
-      description: Runs a query template on Athena and returns the results
+      description: Uses a Go template to build and run a query on Athena and returns the results, this can block and wait for the query to complete, or return the query ID and the caller can poll for the status
       tags:
         - athena
       requestBody:
@@ -66,7 +66,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
+        '502':
+          description: Bad Gateway, Athena return a status other than successfully so it failed to run the query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunAthenaQueryTemplateResponse'
       x-amazon-apigateway-integration:
         uri:
           'Fn::Sub': 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AthenaWorkflowApiFunction.Arn}:live/invocations'
@@ -86,40 +91,61 @@ components:
     RunS3AthenaQueryTemplateRequest:
       type: object
       required:
-        - parameters
-        - s3_query_template
+        - template
       properties:
-        parameters:
+        query:
           type: object
-        s3_query_template:
+          properties:
+            parameters:
+              type: array
+              description: ordered list of query parameters
+              items:
+                type: string
+        template:
           type: object
           required:
-            - bucket
-            - key
+            - s3_query_file
           properties:
-            bucket:
-              type: string
-            key:
-              type: string
+            parameters:
+              type: object
+            s3_query_file:
+              type: object
+              required:
+                - bucket
+                - key
+              properties:
+                bucket:
+                  type: string
+                key:
+                  type: string
     RunAthenaQueryTemplateRequest:
       type: object
       required:
-        - parameters
-        - query
+        - template_query
+        - wait_for_completion
       properties:
-        parameters:
-          type: array
-          description: ordered list of query parameters
-          items:
-            type: string
         query:
+          type: object
+          description: Athena query parameters which are passed as is to the Athena API
+          properties:
+            parameters:
+              type: array
+              description: ordered list of query parameters
+              items:
+                type: string
+        template_query:
+          description: Athena query template using Go template syntax
           type: string
+        template_data:
+          description: Data to be passed to the Go template
+          type: object
+        wait_for_completion:
+          description: If true the operation will wait for the query to complete before returning the results
+          type: boolean
     RunAthenaQueryTemplateResponse:
       type: object
       required:
         - query_execution_id
-        - query_execution_state
-        - result_path
       properties:
         query_execution_id:
           type: string

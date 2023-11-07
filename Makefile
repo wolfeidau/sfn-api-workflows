@@ -2,7 +2,7 @@ APPNAME := sfn-api-powered-workflows
 STAGE ?= dev
 BRANCH ?= master
 
-GIT_HASH := $(shell git rev-parse --short HEAD)
+TAG ?= $(shell git rev-parse --short HEAD)
 
 .PHONY: default
 default: clean build archive deploy
@@ -10,7 +10,7 @@ default: clean build archive deploy
 .PHONY: ci
 ci: clean lint test
 
-LDFLAGS := -ldflags="-s -w -X main.version=${GIT_HASH}"
+LDFLAGS := -ldflags="-s -w -X main.version=${TAG}"
 
 .PHONY: clean
 clean:
@@ -50,9 +50,9 @@ deploy: clean build archive
 			AthenaDatabase=$(ATHENA_DATABASE) \
 			AthenaCatalog=$(ATHENA_CATALOG) \
 			AthenaWorkGroup=$(ATHENA_WORKGROUP) \
-			DataBucketName=$(DATA_BUCKET_NAME)
-
+			DataBucketName=$(DATA_BUCKET_NAME) \
+			ResultsBucketName=$(RESULTS_BUCKET_NAME)
 
 .PHONY: athena-workflow-api-logs
 athena-workflow-api-logs:
-	sam logs --stack-name $(APPNAME)-athena-workflow-api-$(STAGE)-$(BRANCH) --name AthenaWorkflowAPIFunction --tail
+	sam logs --stack-name $(APPNAME)-athena-workflow-api-$(STAGE)-$(BRANCH) --name AthenaWorkflowApiFunction --tail
