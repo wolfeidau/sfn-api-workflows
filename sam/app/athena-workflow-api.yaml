@@ -44,6 +44,8 @@ Parameters:
 Outputs:
   AthenaWorkflowAPIURL:
     Value: !Sub "https://${AthenaWorkflowApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  QueryTemplatesBucket:
+    Value: !Ref QueryTemplatesBucket
 
 Globals:
   Function:
@@ -125,6 +127,7 @@ Resources:
           ATHENA_DATABASE: !Ref AthenaDatabase
           ATHENA_CATALOG: !Ref AthenaCatalog
           ATHENA_WORKGROUP: !Ref AthenaWorkGroup
+          QUERY_TEMPLATES_BUCKET: !Ref QueryTemplatesBucket
       Policies:
         - AthenaQueryPolicy:
             WorkGroupName: !Ref AthenaWorkGroup
@@ -134,6 +137,8 @@ Resources:
             BucketName: !Ref ResultsBucketName
         - S3WritePolicy:
             BucketName: !Ref ResultsBucketName
+        - S3CrudPolicy:
+            BucketName: !Ref QueryTemplatesBucket
       Events:
         AnyApi:
           Type: Api
@@ -200,3 +205,39 @@ Resources:
       Type: "String"
       Value: !Ref AthenaWorkflowApi
       Description: "ApplicationsApi Id"
+
+  QueryTemplatesBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+
+  QueryTemplatesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref QueryTemplatesBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: "*"
+            Action:
+              - s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${QueryTemplatesBucket}/*
+              - Fn::Sub: arn:aws:s3:::${QueryTemplatesBucket}
+            Condition:
+              Bool:
+                aws:SecureTransport: false

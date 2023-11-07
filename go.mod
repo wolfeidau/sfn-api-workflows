@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.22.1
 	github.com/aws/aws-sdk-go-v2/config v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/athena v1.34.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.42.0
 	github.com/deepmap/oapi-codegen/v2 v2.0.0
 	github.com/getkin/kin-openapi v0.120.0
 	github.com/labstack/echo/v4 v4.11.2
@@ -15,16 +16,22 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/wolfeidau/lambda-go-extras/standard v1.5.1
 	github.com/wolfeidau/lambdapack v1.1.1
+	github.com/wolfeidau/s3iofs v1.3.1
 )
 
 require (
 	github.com/aws/aws-lambda-go v1.41.0 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.5.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.15.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.5.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.2.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.16.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.17.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.25.0 // indirect

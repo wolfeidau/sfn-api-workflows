@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"text/template"
 	"time"
@@ -12,8 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/athena"
 	"github.com/aws/aws-sdk-go-v2/service/athena/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
+	"github.com/wolfeidau/s3iofs"
 	"github.com/wolfeidau/sfn-api-powered-workflows/internal/api/athena_workflow"
 	"github.com/wolfeidau/sfn-api-powered-workflows/internal/flags"
 )
@@ -27,8 +30,9 @@ const (
 func Setup(cfg flags.API, awscfg aws.Config, e *echo.Echo) error {
 
 	athenaSvc := athena.NewFromConfig(awscfg)
+	s3Svc := s3.NewFromConfig(awscfg)
 
-	srv := NewAthenaWorkflow(cfg, athenaSvc)
+	srv := NewAthenaWorkflow(cfg, athenaSvc, s3Svc)
 
 	athena_workflow.RegisterHandlers(e, srv)
 
@@ -38,13 +42,15 @@ func Setup(cfg flags.API, awscfg aws.Config, e *echo.Echo) error {
 type Server struct {
 	cfg       flags.API
 	athenaSvc *athena.Client
+	s3Svc     *s3.Client
 }
 
 // NewAthenaWorkflow creates a new Server instance with the provided configuration and Athena service client.
-func NewAthenaWorkflow(cfg flags.API, athenaSvc *athena.Client) *Server {
+func NewAthenaWorkflow(cfg flags.API, athenaSvc *athena.Client, s3Svc *s3.Client) *Server {
 	return &Server{
 		cfg:       cfg,
 		athenaSvc: athenaSvc,
+		s3Svc:     s3Svc,
 	}
 }
 
@@ -70,9 +76,9 @@ func (s *Server) RunAthenaQueryTemplate(c echo.Context) error {
 	}
 
 	var parameters []string
-
-	if runAthenaQuery.Query != nil && runAthenaQuery.Query.Parameters != nil {
-		parameters = *runAthenaQuery.Query.Parameters
+	// if the query has parameters, then use them
+	if runAthenaQuery.Parameters != nil {
+		parameters = *runAthenaQuery.Parameters
 	}
 
 	queryResult, err := executeAthenaQuery(ctx, s.athenaSvc, athenaQuery, s.cfg.AthenaCatalog, s.cfg.AthenaDatabase, s.cfg.AthenaWorkgroup, parameters, runAthenaQuery.WaitForCompletion)
@@ -82,19 +88,63 @@ func (s *Server) RunAthenaQueryTemplate(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, "failed to run query")
 	}
 
-	// check the query execution state if it is set, it won't be set if wait for completion is false
-	if queryResult.QueryExecutionState != nil && aws.ToString(queryResult.QueryExecutionState) != string(types.QueryExecutionStateSucceeded) {
-		log.Ctx(ctx).Error().Fields(queryResult).Msg("failed to run query, result was not successful")
-
-		return c.JSON(http.StatusBadGateway, queryResult)
-	}
-
 	return c.JSON(http.StatusOK, queryResult)
 }
 
 // (POST /athena/run_s3_query_template).
 func (s *Server) RunS3AthenaQueryTemplate(c echo.Context) error {
-	return c.NoContent(http.StatusNotImplemented)
+	ctx := c.Request().Context()
+
+	runAthenaQuery := new(athena_workflow.RunS3AthenaQueryTemplateRequest)
+
+	err := c.Bind(runAthenaQuery)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to parse request")
+
+		return errorResponse(c, http.StatusBadRequest, "failed to parse request")
+	}
+
+	templatesDir := s3iofs.NewWithClient(s.cfg.QueryTemplatesBucket, s.s3Svc)
+
+	athenaQuery, err := executeTextTemplateWithFS(templatesDir, runAthenaQuery.TemplateName, runAthenaQuery.TemplateData, runAthenaQuery.TemplateParsePatterns...)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to execute template")
+
+		return errorResponse(c, http.StatusBadRequest, "failed to execute template")
+	}
+
+	var parameters []string
+	// if the query has parameters, then use them
+	if runAthenaQuery.Parameters != nil {
+		parameters = *runAthenaQuery.Parameters
+	}
+
+	queryResult, err := executeAthenaQuery(ctx, s.athenaSvc, athenaQuery, s.cfg.AthenaCatalog, s.cfg.AthenaDatabase, s.cfg.AthenaWorkgroup, parameters, runAthenaQuery.WaitForCompletion)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to run query")
+
+		return errorResponse(c, http.StatusInternalServerError, "failed to run query")
+	}
+
+	return c.JSON(http.StatusOK, queryResult)
+}
+
+// executeTextTemplateWithFS executes a text template loaded from the provided fs.FS
+// interface. It parses the template patterns from the fs.FS, executes the named
+// template with the provided data, and returns the result string or any errors.
+func executeTextTemplateWithFS(fsys fs.FS, name string, data interface{}, patterns ...string) (string, error) {
+	tmpl, err := template.New("query").ParseFS(fsys, patterns...)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
+	}
+
+	buf := new(bytes.Buffer)
+	err = tmpl.ExecuteTemplate(buf, name, data)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return buf.String(), nil
 }
 
 // executeTextTemplate executes a Go text/template with the given queryTemplate and data.
@@ -164,6 +214,13 @@ func waitForQuery(ctx context.Context, athenaClient *athena.Client, queryExecuti
 		case types.QueryExecutionStateRunning, types.QueryExecutionStateQueued:
 			log.Ctx(ctx).Info().Str("QueryExecutionId", queryExecutionId).Msg("query still running")
 		default:
+
+			if queryExecution.QueryExecution.Status.State != types.QueryExecutionStateSucceeded {
+				log.Ctx(ctx).Error().Fields(queryExecution).Msg("failed to run query, result was not successful")
+
+				return nil, fmt.Errorf("query failed with status: %s", queryExecution.QueryExecution.Status.State)
+			}
+
 			return &athena_workflow.RunAthenaQueryTemplateResponse{
 				QueryExecutionId:    queryExecutionId,
 				QueryExecutionState: aws.String(string(queryExecution.QueryExecution.Status.State)),

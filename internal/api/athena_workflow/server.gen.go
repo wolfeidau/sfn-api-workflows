@@ -28,11 +28,8 @@ type ErrorResponse struct {
 
 // RunAthenaQueryTemplateRequest defines model for RunAthenaQueryTemplateRequest.
 type RunAthenaQueryTemplateRequest struct {
-	// Query Athena query parameters which are passed as is to the Athena API
-	Query *struct {
-		// Parameters A list of values for the parameters in an Athena query. The values are applied sequentially to the parameters in the query in the order in which the parameters occur.
-		Parameters *[]string `json:"parameters,omitempty"`
-	} `json:"query,omitempty"`
+	// Parameters A list of values for the parameters in an Athena query. The values are applied sequentially to the parameters in the query in the order in which the parameters occur.
+	Parameters *[]string `json:"parameters,omitempty"`
 
 	// TemplateData Data to be passed to the Go template.
 	TemplateData *map[string]interface{} `json:"template_data,omitempty"`
@@ -57,17 +54,13 @@ type RunS3AthenaQueryTemplateRequest struct {
 	Parameters *[]string `json:"parameters,omitempty"`
 
 	// TemplateData Data to be passed to the Go template.
-	TemplateData     *map[string]interface{} `json:"template_data,omitempty"`
-	TemplateS3Params *struct {
-		// Bucket The S3 bucket where the templates is stored.
-		Bucket string `json:"bucket"`
+	TemplateData *map[string]interface{} `json:"template_data,omitempty"`
 
-		// Name The name of the template file to execute.
-		Name string `json:"name"`
+	// TemplateName The name of the template file to execute.
+	TemplateName string `json:"template_name"`
 
-		// ParsePatterns List of patterns to parse template files from the S3 bucket, this allows you to use includes to split the template into multiple files.
-		ParsePatterns []string `json:"parse_patterns"`
-	} `json:"template_s3_params,omitempty"`
+	// TemplateParsePatterns List of patterns to parse template files from the S3 bucket, this allows you to use includes to split the template into multiple files.
+	TemplateParsePatterns []string `json:"template_parse_patterns"`
 
 	// WaitForCompletion If true the operation will wait for the query to complete before returning the results.
 	WaitForCompletion bool `json:"wait_for_completion"`
@@ -152,29 +145,27 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYS28bNxD+KwSb49qyo+ayNwdpAqEt6lopcggCYbQ70jKhyA2HlKwY+u/FkPvQY+U6",
-	"QNMWbW8SOfw4r+/jSA+ysKvaGjSeZP4gqahwBfHjD85Zd4dUW0PIC7WzNTqvMG6vkAiWcaNEKpyqvbJG",
-	"5umcaLcz6bc1ylySd8os5W6XSYefg3JYyvx9B/Nhl8m7YG58hQZ+Dei2b3FVa/B4h58Dkj/14DNbnd6f",
-	"IETcFTU4WKFHR2JTqaIS4FDUQISlABKKhLfCVyiaUze3E5kd3dNjDFwmtCIv7EKsQQcksbAu4u1drIwA",
-	"I/bduhRvK2xPsEdQ11phKYhjNV6B1tvWs0MkXkmhNV+sK9HxlxTf0QlbFMFdykwqj6vo/1E5uvqAc7CN",
-	"5WkW7PwjFj5aNJWYleDhNAevwAM7O+8y23j+xor26KV8DPdMJdsOEIGUWe7DCdoaD/dZE7QiEZp7l2jQ",
-	"scVeUVPOT1sxkxtQfrawbsYs0JjuPXZjshDehYTIfQG8LjZKa8Hnu5KnsngrGjAUc1xYh8KhD85wCGzm",
-	"kIL2tOfP3FqNYE64cZSfYXc/DCT2HJHOcTniz/Aei8CYM1UOdsqxGXnwOGiZYpzV4KuB/aMwB24/E9R0",
-	"/DX68J/i7V/AUhrPood0mup5KD6hH2BwhWI6FmlbbCp0iUYtZlRg8tZhOchPAyscRuUdLt8+mlgojRxW",
-	"6iUchKzBEXJnenRmoDN+avqitWC8eObwGhILZ1fx+i7ATPhKkQCt7YbE1gY+GwiFMoUOJUYsqrXyh24r",
-	"461YBe1VrRv0x0u/UmaSNq8H9HufW01hmkyeRD/Es3+2JtJ41ubtyYK4yyRhEZzy2ynPN6lnSS3X3/MH",
-	"xQFVCCW6NlG5vAm+sk59iYH1bkGtfkSW4vsLWMEXay6gVkvwuIHtBQRftXYbmkb8Hd+uzMIOaNDtpCF/",
-	"7exacX8wdflbgRSfvI11nxbabkSFumYhy6RXXmM/5rxrLdLkskZHCf368uryiutpazRQK5nLcVziJvBV",
-	"TMEIIsjIBZPemD63THFLA5T+jVj7Dh5jVpWgdCnAlMIFI9rpy3byGXdiyWm/4A1jCjBirm3xKdo93kCZ",
-	"sK6B2jOYvIpHeaEArdFFzNpq3SHxaxVii3UNOyllfuaxlKntkPxLW8bZpLDGo4kZibJfRIjRR0r8SJMz",
-	"f3rmcCFz+d2oH61HzVw9enzEjc1yqnX9u5D1SedwU/lEiR6UjqH1VGF6ppc4Pvqx3s+vrr55JM2McSaU",
-	"VC0HRlAouMsXQev4fL34E307/Oky4MrEsP6BFlN0a3QiHkhePP8bM/QSSvEmiUnWMqdpdWj6V1hfITf0",
-	"UQoFWcG0AaXT08487PhxoIEyf9+p3/sPO9ZLWBKLa+onVtAheVPG4zIRh0OvvK9/Rl9ZJtHtL9O3UVmI",
-	"fOVsWFYvsYK1sk7m0uA6SmuvjbPa2XuW0eAUY702eT4N8/iMmfzZw827aZ7fgvOKb9vlvRft5h0u446G",
-	"1byEnCVt9Pzq+sXF1fhifD1aBFPwURo9e0iJbIXyplavm83LG8cIao0jZdY2FZm4MLvsQBtp/GR5vAuG",
-	"Ov3ryNr9TNEWSizT7DAd/7FADsrV4Bj87QTr0an7CZJFY5Fe4n+ZZv1Pqa+i1K5Lypl/bLphxyGXpewH",
-	"S+rnsiafuzMJbShwsQatSvAxV6C1fKJ17Di2zx9ks9h2emIVd2h2vHW790MztvBu93sAAAD///kFKEBY",
-	"EwAA",
+	"H4sIAAAAAAAC/+xXT28btxP9KgR/Oa4tOfrlsjcFaQqhLepaKXIIAmG0O9IyocjNkJSsGPvdiyF3V5a0",
+	"cl2gQYsiF0PLP4/Dmfcexw+ysJvaGjTeyfxBuqLCDcSfPxBZukNXW+OQB2qyNZJXGKc36Bys40SJriBV",
+	"e2WNzNM+0U1n0u9rlLl0npRZy6bJJOGXoAhLmX/oYT42mbwLZuorNPBbQNq/w02tweMdfgno/HkENRBs",
+	"0CO58yCmQivnhV2JLeiATqwsCV+hOGwSyggwIp0ovvCR1+Jdhd0OIBRQ11phKRzHYLwCrffC2wEkHokY",
+	"3YelEok/dpUqqtMdtigCXctMKo+bGP9Jmvq8ARHs43ebj0UJHs5v/AY8cGhLPsc5LLs4f7Si23p9KIdd",
+	"fsLCH+HG8M+BuzqI4JRZP4YTbm883GftFZUToT13jQaJV3AARxk+J0Qmd6D8YmVpwVzUmM49DWO2Ep5C",
+	"QmQWAI+LndJa8P6+wKkI3ooWDMUSV5ZQEPpAhq/Aywhd0N49imdprUYwZww9yc9wuB8HEnuJzpcUFfEX",
+	"eI9FYMyFKgd5cbrMefA4uDLdcVGDrwbmT645cPqFS80n31X6z6nUwGbAdDkjPMO5ZLheoiulkc9IhcVB",
+	"/fXYNZDjv94jmYF6/dxWq1vBwHHP8XlOrMhuYhzziViG4jP6TPhKOQFa250Text4b3AolCl0KDFiuVor",
+	"fxy/Mt6KTdBe1bpFf7ogG2VmafLmvDr/bqcZiu608perda7WJpMOi0DK7+f8ridBOrXe/p9/KL5shVAi",
+	"yUwmXslp8JUl9RW609sM1uonZPO7v4INfLXmCmq1Bo872F9B8FW3bufmEb/h05VZ2QHV385audVkt4pr",
+	"z2LhrwJdfGR2lj6vtN2JCnXN1pFJr7yOASYneN+tmN7OZCa3SC6h31yPr8dca1ujgVrJXE7iUCbZCGMK",
+	"RhBBRhRMcvVFl9ToWDb52HHUvzt2m6Pnj3UclC4FmFJQMKI1KGF7w4ozkQ7uMRlaNRRgxFLb4nNc9zS5",
+	"MmGphXq0YPYmbuWBArRGipi11bpH4vchRPr1ZJ6VMr/wPMlESXT+tS1jN1BY49HEjESjLSLE6JNL2kkd",
+	"I/96QbiSufzf6NBSjtp+cvR0axfJcm5oByfODknn66byiRI9KB2vdpARSze9ffGZjfV+OR5/85u0r/qF",
+	"q6RqERjhQsEsXwWtoyW9+htjO27ZB0KZGfYK0GKOtEUSccORUcj8Q28RHz42bCqwduxOKelsM0MeoIzH",
+	"dWIXR1l5X/+CvrLMtNtf5++i/JzzFdmwrl5jBVtlSebS4Db6z8FAFjXZe/aaQIqx3po8n4dl9HGTv3iY",
+	"vp/n+S2QV3xakx+i6CbvcB1nNGyWJeSs+9HL8c2rq/HkanIzWgVT8FY3evGQatm5ybRWb9vJ6ykxgtri",
+	"SJmtTfVwnNQmOzIQN3m2h9wF43qT6Bndd8/aQollejznkz93kUFND3Zn307VTzaDz9C1m4j0XP3HhP1d",
+	"Un9JUk2flLNuIVGi7wgIuSzloTNzh+alzWdzIaGtBK62oFUJPuYKtJbPXB0Zx+vzB9kOdkxPqmKGZqdT",
+	"t4/+/4kUbpo/AgAA///KAr72dREAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
