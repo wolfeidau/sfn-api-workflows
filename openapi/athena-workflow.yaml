@@ -15,11 +15,11 @@ paths:
   /athena/run_s3_query_template:
     post:
       operationId: RunS3AthenaQueryTemplate
-      description: Runs a query template which is loaded from S3 on Athena and returns the results
+      description: Runs a query template which is loaded from S3 on Athena and returns the results.
       tags:
         - athena
       requestBody:
-        description: The parameters, s3 object and athena details
+        description: The parameters, s3 object and athena details.
         required: true
         content:
           application/json:
@@ -43,11 +43,11 @@ paths:
   /athena/run_query_template:
     post:
       operationId: RunAthenaQueryTemplate
-      description: Uses a Go template to build and run a query on Athena and returns the results, this can block and wait for the query to complete, or return the query ID and the caller can poll for the status
+      description: Uses a Go template to build and run a query on Athena and returns the results, this can block and wait for the query to complete, or return the query ID and the caller can poll for the status.
       tags:
         - athena
       requestBody:
-        description: The parameters, template and athena details
+        description: The parameters, template and athena details.
         required: true
         content:
           application/json:
@@ -91,33 +91,39 @@ components:
     RunS3AthenaQueryTemplateRequest:
       type: object
       required:
-        - template
+        - s3_template
+        - wait_for_completion
       properties:
-        query:
+        parameters:
+          type: array
+          description: A list of values for the parameters in an Athena query. The values are applied sequentially to the parameters in the query in the order in which the parameters occur.
+          items:
+            type: string
+        template_data:
+          description: Data to be passed to the Go template.
           type: object
-          properties:
-            parameters:
-              type: array
-              description: ordered list of query parameters
-              items:
-                type: string
-        template:
+        wait_for_completion:
+          description: If true the operation will wait for the query to complete before returning the results.
+          type: boolean
+        template_s3_params:
           type: object
           required:
-            - s3_query_file
+            - bucket
+            - name
+            - parse_patterns
           properties:
-            parameters:
-              type: object
-            s3_query_file:
-              type: object
-              required:
-                - bucket
-                - key
-              properties:
-                bucket:
-                  type: string
-                key:
-                  type: string
+            bucket:
+              type: string
+              description: The S3 bucket where the templates is stored.
+            name:
+              type: string
+              description: The name of the template file to execute.
+            parse_patterns:
+              type: array
+              description: List of patterns to parse template files from the S3 bucket, this allows you to use includes to split the template into multiple files.
+              minItems: 1
+              items:
+                type: string
     RunAthenaQueryTemplateRequest:
       type: object
       required:
@@ -130,17 +136,17 @@ components:
           properties:
             parameters:
               type: array
-              description: ordered list of query parameters
+              description: A list of values for the parameters in an Athena query. The values are applied sequentially to the parameters in the query in the order in which the parameters occur.
               items:
                 type: string
         template_query:
-          description: Athena query template using Go template syntax
+          description: Template using Go template syntax, which is used to generate the Athena query.
           type: string
         template_data:
-          description: Data to be passed to the Go template
+          description: Data to be passed to the Go template.
           type: object
         wait_for_completion:
-          description: If true the operation will wait for the query to complete before returning the results
+          description: If true the operation will wait for the query to complete before returning the results.
           type: boolean
     RunAthenaQueryTemplateResponse:
       type: object
