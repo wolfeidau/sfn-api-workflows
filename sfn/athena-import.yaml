@@ -1,21 +1,39 @@
 Comment: A demonstration step function which invokes the AthenaWorkflowApi
-StartAt: AthenaWorkflowApiInvoke
+StartAt: AthenaRunS3QueryTemplate
 States:
-  AthenaWorkflowApiInvoke:
+  AthenaRunS3QueryTemplate:
     Type: Task
     Resource: arn:aws:states:::apigateway:invoke
     Parameters:
-      ApiEndpoint: FIXME
+      ApiEndpoint: "${AthenaWorkflowApiEndpoint}"
       Method: POST
       Headers:
         content-type:
           - application/json
-      Stage: Prod
+      Stage: "${AthenaWorkflowApiStage}"
       Path: /athena/run_s3_query_template
       RequestBody:
         template_name: select_example.sql
         template_parse_patterns:
           - tests/*.sql
+        template_data:
+          val: 1
+        wait_for_completion: true
+      AuthType: IAM_ROLE
+    Next: AthenaRunQueryTemplate
+  AthenaRunQueryTemplate:
+    Type: Task
+    Resource: arn:aws:states:::apigateway:invoke
+    Parameters:
+      ApiEndpoint: "${AthenaWorkflowApiEndpoint}"
+      Method: POST
+      Headers:
+        content-type:
+          - application/json
+      Stage: "${AthenaWorkflowApiStage}"
+      Path: /athena/run_query_template
+      RequestBody:
+        template_query: SELECT {{ .val }}
         template_data:
           val: 1
         wait_for_completion: true

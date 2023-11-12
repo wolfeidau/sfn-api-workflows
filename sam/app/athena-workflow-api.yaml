@@ -46,10 +46,14 @@ Parameters:
     Default: "Prod"
 
 Outputs:
-  AthenaWorkflowAPIURL:
+  AthenaWorkflowApiURL:
     Value: !Sub "https://${AthenaWorkflowApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
   QueryTemplatesBucket:
     Value: !Ref QueryTemplatesBucket
+  AthenaWorkflowApiEndpoint:
+    Value: !Sub "${AthenaWorkflowApi}.execute-api.${AWS::Region}.amazonaws.com"
+  AthenaWorkflowApiId:
+    Value: !Ref AthenaWorkflowApi
 
 Globals:
   Function:
@@ -71,6 +75,11 @@ Resources:
       Name: !Ref AWS::StackName
       EndpointConfiguration:
         Type: REGIONAL
+      Auth:
+        DefaultAuthorizer: AWS_IAM
+        ResourcePolicy:
+          AwsAccountWhitelist:
+           - !Ref AWS::AccountId
       # Use DefinitionBody for swagger file so that we can use CloudFormation intrinsic functions within the swagger file
       DefinitionBody:
         "Fn::Transform":
