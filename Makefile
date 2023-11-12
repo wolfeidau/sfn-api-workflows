@@ -53,6 +53,23 @@ deploy: clean build archive
 			DataBucketName=$(DATA_BUCKET_NAME) \
 			ResultsBucketName=$(RESULTS_BUCKET_NAME)
 
+.PHONY: deploy-workflow
+deploy-workflow: clean build archive
+	@echo "--- deploy stack $(APPNAME)-athena-workflow-$(STAGE)-$(BRANCH)"
+	$(eval SAM_BUCKET := $(shell aws ssm get-parameter --name '/config/dev/master/deploy_bucket' --query 'Parameter.Value' --output text))
+	@sam deploy \
+		--no-fail-on-empty-changeset \
+		--template-file sam/app/athena-workflow.yaml \
+		--capabilities CAPABILITY_IAM \
+		--s3-bucket $(SAM_BUCKET) \
+		--s3-prefix sam/$(GIT_HASH) \
+		--tags "environment=$(STAGE)" "branch=$(BRANCH)" "service=$(APPNAME)" \
+		--stack-name $(APPNAME)-athena-workflow-$(STAGE)-$(BRANCH) \
+		--parameter-overrides AppName=$(APPNAME) Stage=$(STAGE) Branch=$(BRANCH) \
+			AthenaWorkflowApiEndpoint=/config/${APPNAME}/${STAGE}/${BRANCH}/AthenaWorkflowApi/Endpoint \
+			AthenaWorkflowApiId=/config/${APPNAME}/${STAGE}/${BRANCH}/AthenaWorkflowApi/Id \
+			AthenaWorkflowApiStage=/config/${APPNAME}/${STAGE}/${BRANCH}/AthenaWorkflowApi/Stage
+
 .PHONY: lint-openapi-spec
 lint-openapi-spec:
 	@docker run --rm -it -v $(shell pwd):/tmp stoplight/spectral lint --ruleset /tmp/.spectral.yaml /tmp/openapi/athena-workflow.yaml

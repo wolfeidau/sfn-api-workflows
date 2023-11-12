@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "wolfeidau: workflow to import new data into an apache iceberg table."
+
+Parameters:
+  AppName:
+    Type: String
+    Description: Application Name used to store configuration.
+  Stage:
+    Type: String
+    Description: The stage where the application is running in, e.g., dev, prod.
+    Default: dev
+  Branch:
+    Type: String
+    Default: master
+  RetentionInDays:
+    Description:
+      Retain the assets uploaded to the deployment bucket for this many
+      days.
+    Type: Number
+    Default: 7
+  AthenaWorkflowApiId:
+    Type: AWS::SSM::Parameter::Value<String>
+  AthenaWorkflowApiEndpoint:
+    Type: AWS::SSM::Parameter::Value<String>
+  AthenaWorkflowApiStage:
+    Type: AWS::SSM::Parameter::Value<String>
+
+
+Resources:
+  AthenaImportStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/sfn/athena-import-${AWS::StackName}"
+      RetentionInDays: !Ref RetentionInDays
+
+  AthenaImportStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: STANDARD
+      DefinitionSubstitutions:
+        AthenaWorkflowApiStage: !Ref AthenaWorkflowApiStage
+        AthenaWorkflowApiEndpoint: !Ref AthenaWorkflowApiEndpoint
+      DefinitionUri: ../../sfn/athena-import.yaml
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt AthenaImportStateMachineLogGroup.Arn
+        Level: ALL
+        IncludeExecutionData: true
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'logs:CreateLogDelivery'
+                - 'logs:GetLogDelivery'
+                - 'logs:UpdateLogDelivery'
+                - 'logs:DeleteLogDelivery'
+                - 'logs:ListLogDeliveries'
+                - 'logs:PutResourcePolicy'
+                - 'logs:DescribeResourcePolicies'
+                - 'logs:DescribeLogGroups'
+              Resource: '*'
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+              - 'execute-api:Invoke'
+              Resource:
+              - !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AthenaWorkflowApiId}/${AthenaWorkflowApiStage}/POST/athena/*'
